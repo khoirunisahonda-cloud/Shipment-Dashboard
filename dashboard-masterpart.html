@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Part Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#191c1f;
+    --bg-panel:#212528;
+    --bg-panel-2:#272c30;
+    --border:#383f45;
+    --border-soft:#2c3237;
+    --text:#eae7e0;
+    --text-muted:#8f9aa3;
+    --text-faint:#5f6a72;
+    --teal:#45d6bf;
+    --slate:#8a97a3;
+    --red:#e2574c;
+    --violet:#b393f5;
+    --amber:#f2a541;
+    --mono: 'IBM Plex Mono', monospace;
+    --disp: 'Barlow Condensed', sans-serif;
+    --body: 'IBM Plex Sans', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--bg-panel-2) 1px, transparent 1px) 0 0/100% 28px,
+      linear-gradient(90deg, var(--bg-panel-2) 1px, transparent 1px) 0 0/28px 100%,
+      var(--bg);
+    background-blend-mode: overlay, overlay, normal;
+    background-attachment: fixed;
+    color:var(--text);
+    font-family:var(--body);
+    padding:20px;
+    min-height:100vh;
+  }
+  .wrap{max-width:1280px;margin:0 auto;}
+
+  /* ---- Title block ---- */
+  .titleblock{
+    border:1px solid var(--border);
+    background:var(--bg-panel);
+    display:grid;
+    grid-template-columns: 1fr auto;
+    margin-bottom:18px;
+  }
+  .titleblock-main{
+    padding:18px 22px;
+    border-right:1px solid var(--border);
+  }
+  .titleblock-main .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    color:var(--teal);
+    text-transform:uppercase;
+  }
+  .titleblock-main h1{
+    font-family:var(--disp);
+    font-weight:700;
+    font-size:34px;
+    letter-spacing:.01em;
+    margin:2px 0 4px;
+    text-transform:uppercase;
+  }
+  .titleblock-main p{
+    margin:0;
+    color:var(--text-muted);
+    font-size:13.5px;
+    max-width:640px;
+  }
+  .titleblock-meta{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+  .tb-cell{
+    padding:10px 16px;
+    border-left:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    min-width:130px;
+  }
+  .tb-cell:nth-child(2n){border-left:1px solid var(--border);}
+  .tb-cell:last-child, .tb-cell:nth-last-child(2){border-bottom:none;}
+  .tb-cell .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--text-faint);text-transform:uppercase;}
+  .tb-cell .v{font-family:var(--mono);font-size:13px;color:var(--text);margin-top:3px;}
+  .tb-cell .v.status-ok{color:var(--teal);}
+  .tb-cell .v.status-warn{color:var(--amber);}
+
+  /* ---- KPI strip ---- */
+  .kpis{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:1px;
+    background:var(--border);
+    border:1px solid var(--border);
+    margin-bottom:18px;
+  }
+  .kpi{
+    background:var(--bg-panel);
+    padding:16px 14px;
+    position:relative;
+  }
+  .kpi .label{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+  }
+  .kpi .num{
+    font-family:var(--disp);
+    font-weight:700;
+    font-size:30px;
+    margin-top:6px;
+    line-height:1;
+  }
+  .kpi .sub{font-size:11px;color:var(--text-muted);margin-top:5px;}
+  .kpi.accent-teal .num{color:var(--teal);}
+  .kpi.accent-slate .num{color:var(--slate);}
+  .kpi.accent-red .num{color:var(--red);}
+  .kpi.accent-violet .num{color:var(--violet);}
+  .kpi.accent-amber .num{color:var(--amber);}
+
+  /* ---- panels / charts ---- */
+  .panels{
+    display:grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap:14px;
+    margin-bottom:18px;
+  }
+  .panel{
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    padding:16px 18px 12px;
+  }
+  .panel h2{
+    font-family:var(--disp);
+    font-size:17px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin:0 0 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel h2::before{
+    content:'';
+    width:8px;height:8px;
+    background:var(--teal);
+    display:inline-block;
+  }
+  .chart-holder{height:230px;position:relative;}
+
+  /* ---- controls ---- */
+  .controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    margin-bottom:12px;
+  }
+  .search-box{
+    flex:1;
+    min-width:220px;
+    background:var(--bg-panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-family:var(--body);
+    font-size:13.5px;
+    padding:9px 12px;
+  }
+  .search-box:focus{outline:1px solid var(--teal);}
+  .chip{
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:.03em;
+    padding:7px 12px;
+    border:1px solid var(--border);
+    background:var(--bg-panel-2);
+    color:var(--text-muted);
+    cursor:pointer;
+    user-select:none;
+    text-transform:uppercase;
+  }
+  .chip:hover{color:var(--text);}
+  .chip.active{background:var(--teal);border-color:var(--teal);color:#0f1214;font-weight:600;}
+  .chip.warn.active{background:var(--amber);border-color:var(--amber);}
+
+  /* ---- table ---- */
+  .table-panel{background:var(--bg-panel);border:1px solid var(--border);padding:16px 18px 18px;}
+  .table-scroll{overflow-x:auto;border:1px solid var(--border-soft);}
+  table{width:100%;border-collapse:collapse;font-size:12.8px;min-width:900px;}
+  thead th{
+    position:sticky;top:0;
+    background:var(--bg-panel-2);
+    text-align:left;
+    padding:9px 10px;
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    border-bottom:1px solid var(--border);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  thead th:hover{color:var(--teal);}
+  tbody td{
+    padding:8px 10px;
+    border-bottom:1px solid var(--border-soft);
+    color:var(--text);
+    vertical-align:top;
+  }
+  tbody tr:hover{background:var(--bg-panel-2);}
+  tbody tr.incomplete{box-shadow: inset 3px 0 0 var(--amber);}
+  .sku{font-family:var(--mono);font-size:12px;color:var(--teal);}
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:.04em;
+    padding:2px 8px;
+    border:1px solid;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .badge.fast{color:var(--teal);border-color:var(--teal);}
+  .badge.nonfast{color:var(--slate);border-color:var(--slate);}
+  .badge.discontinue{color:var(--red);border-color:var(--red);}
+  .badge.supersede{color:var(--violet);border-color:var(--violet);}
+  .badge.other{color:var(--text-faint);border-color:var(--border);}
+  .dim{color:var(--text-muted);font-family:var(--mono);font-size:12px;}
+  .prodname{max-width:340px;}
+  .flag{color:var(--amber);font-family:var(--mono);font-size:10.5px;margin-left:6px;}
+
+  .footer-note{
+    margin-top:14px;
+    font-size:11.5px;
+    color:var(--text-faint);
+    font-family:var(--mono);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .footer-note a{color:var(--teal);}
+  .empty-state{padding:40px 10px;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:12.5px;}
+  .loading-state{padding:60px 10px;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:13px;}
+  .error-state{padding:24px 16px;color:var(--red);font-family:var(--mono);font-size:12.5px;border:1px dashed var(--red);background:rgba(226,87,76,.06);}
+
+  @media (max-width: 900px){
+    .kpis{grid-template-columns:repeat(3,1fr);}
+    .panels{grid-template-columns:1fr;}
+    .titleblock{grid-template-columns:1fr;}
+    .titleblock-main{border-right:none;border-bottom:1px solid var(--border);}
+    .titleblock-meta{grid-template-columns:1fr 1fr;}
+  }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="titleblock">
+    <div class="titleblock-main">
+      <div class="eyebrow">Ops · Inventory Data</div>
+      <h1>Master Part Dashboard</h1>
+      <p>Sumber data live dari Google Sheets — tab "MASTERPART SHOPEE (BELUM TERISI)". Melacak status pergerakan SKU dan kelengkapan data berat/dimensi untuk keperluan ongkir.</p>
+    </div>
+    <div class="titleblock-meta">
+      <div class="tb-cell"><div class="k">Total Baris</div><div class="v" id="metaTotal">—</div></div>
+      <div class="tb-cell"><div class="k">Data Lengkap</div><div class="v status-ok" id="metaComplete">—</div></div>
+      <div class="tb-cell"><div class="k">Terakhir Ditarik</div><div class="v" id="metaFetched">—</div></div>
+      <div class="tb-cell"><div class="k">Status Tarik Data</div><div class="v status-warn" id="metaStatus">Memuat…</div></div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpiRow">
+    <div class="kpi"><div class="label">Total SKU</div><div class="num" id="kTotal">–</div><div class="sub">baris data valid</div></div>
+    <div class="kpi accent-teal"><div class="label">Fast Moving</div><div class="num" id="kFast">–</div><div class="sub" id="kFastPct">–</div></div>
+    <div class="kpi accent-slate"><div class="label">Non Fast Moving</div><div class="num" id="kNonFast">–</div><div class="sub" id="kNonFastPct">–</div></div>
+    <div class="kpi accent-violet"><div class="label">Supersede</div><div class="num" id="kSupersede">–</div><div class="sub">perlu ganti SKU</div></div>
+    <div class="kpi accent-red"><div class="label">Discontinue</div><div class="num" id="kDiscontinue">–</div><div class="sub">tidak dijual lagi</div></div>
+    <div class="kpi accent-amber"><div class="label">Data Belum Lengkap</div><div class="num" id="kIncomplete">–</div><div class="sub">berat/dimensi = 0</div></div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <h2>Distribusi Status SKU</h2>
+      <div class="chart-holder"><canvas id="statusChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>10 Part Terberat (g)</h2>
+      <div class="chart-holder"><canvas id="weightChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="table-panel">
+    <h2 style="font-family:var(--disp);font-size:17px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 12px;">Tabel Master Part</h2>
+    <div class="controls">
+      <input type="text" class="search-box" id="searchBox" placeholder="Cari SKU atau nama produk...">
+      <div class="chip active" data-status="ALL">Semua</div>
+      <div class="chip" data-status="FAST">Fast Moving</div>
+      <div class="chip" data-status="NONFAST">Non Fast</div>
+      <div class="chip" data-status="SUPERSEDE">Supersede</div>
+      <div class="chip" data-status="DISCONTINUE">Discontinue</div>
+      <div class="chip warn" id="incompleteToggle">⚠ Belum Lengkap</div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th data-key="sku">SKU Induk</th>
+            <th data-key="status">Status</th>
+            <th data-key="nama">Nama Produk</th>
+            <th data-key="berat">Berat (g)</th>
+            <th data-key="volume">Volume (g)</th>
+            <th data-key="dim">P × L × T</th>
+            <th data-key="update">Update Terakhir</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="7"><div class="loading-state">Menarik data dari Google Sheets…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="footer-note">
+      <span id="rowCountNote">–</span>
+      <span>Sumber: <a href="https://docs.google.com/spreadsheets/d/1X7LWev4Es_0cEaCIZz1kFXQ4_6yJ35Nx8l-2beLTmZ4" target="_blank" rel="noopener">Google Sheets — Master Part</a></span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SHEET_ID = '1X7LWev4Es_0cEaCIZz1kFXQ4_6yJ35Nx8l-2beLTmZ4';
+const GID = '551734447';
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
+
+let rawRows = [];
+let sortState = { key: null, dir: 1 };
+let filterState = { status: 'ALL', incompleteOnly: false, q: '' };
+
+function findKey(headers, needles){
+  const norm = h => h.toLowerCase().trim();
+  for(const h of headers){
+    const nh = norm(h);
+    for(const n of needles){ if(nh.includes(n)) return h; }
+  }
+  return null;
+}
+
+function parseNum(str){
+  if(str === undefined || str === null) return 0;
+  str = String(str).trim();
+  if(str === '') return 0;
+  const cleaned = str.replace(/\./g, '').replace(/,/g, '.');
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? 0 : n;
+}
+
+function classifyStatus(s){
+  const v = (s || '').toLowerCase();
+  if(v.includes('non') && v.includes('fast')) return 'NONFAST';
+  if(v.includes('fast')) return 'FAST';
+  if(v.includes('supersede')) return 'SUPERSEDE';
+  if(v.includes('discontinue')) return 'DISCONTINUE';
+  return 'OTHER';
+}
+
+function statusBadgeClass(cat){
+  return {FAST:'fast', NONFAST:'nonfast', SUPERSEDE:'supersede', DISCONTINUE:'discontinue', OTHER:'other'}[cat] || 'other';
+}
+function statusLabel(cat, raw){
+  return raw && raw.trim() ? raw.trim() : cat;
+}
+
+async function loadData(){
+  try{
+    const res = await fetch(CSV_URL);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const csvText = await res.text();
+    const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: false });
+    const headers = parsed.meta.fields || [];
+
+    const kSku = findKey(headers, ['sku induk']);
+    const kStatus = findKey(headers, ['status sku']);
+    const kNama = findKey(headers, ['nama produk']);
+    const kBerat = findKey(headers, ['berat produk']);
+    const kVolume = findKey(headers, ['volume']);
+    const kPanjang = headers.find(h => h.toLowerCase().trim() === 'panjang');
+    const kLebar = headers.find(h => h.toLowerCase().trim() === 'lebar');
+    const kTinggi = headers.find(h => h.toLowerCase().trim() === 'tinggi');
+    const kUpdate = findKey(headers, ['tanggal revisi', 'update']) || findKey(headers, ['tgl input ops']);
+
+    if(!kSku){ throw new Error('Kolom "SKU Induk" tidak ditemukan di sheet ini.'); }
+
+    rawRows = parsed.data
+      .filter(r => r[kSku] && String(r[kSku]).trim() !== '')
+      .map(r => {
+        const statusRaw = kStatus ? r[kStatus] : '';
+        const berat = kBerat ? parseNum(r[kBerat]) : 0;
+        const volume = kVolume ? parseNum(r[kVolume]) : 0;
+        const p = kPanjang ? parseNum(r[kPanjang]) : 0;
+        const l = kLebar ? parseNum(r[kLebar]) : 0;
+        const t = kTinggi ? parseNum(r[kTinggi]) : 0;
+        const cat = classifyStatus(statusRaw);
+        const incomplete = (berat === 0 || volume === 0 || p === 0 || l === 0 || t === 0 || !statusRaw || !statusRaw.trim());
+        return {
+          sku: String(r[kSku]).trim(),
+          statusCat: cat,
+          statusRaw: (statusRaw || '').trim(),
+          nama: kNama ? String(r[kNama] || '').trim() : '',
+          berat, volume, p, l, t,
+          update: kUpdate ? String(r[kUpdate] || '').trim() : '',
+          incomplete
+        };
+      });
+
+    document.getElementById('metaStatus').textContent = 'Berhasil';
+    document.getElementById('metaStatus').classList.remove('status-warn');
+    document.getElementById('metaStatus').classList.add('status-ok');
+    document.getElementById('metaFetched').textContent = new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    renderAll();
+  }catch(err){
+    document.getElementById('metaStatus').textContent = 'Gagal';
+    document.getElementById('tableBody').innerHTML =
+      `<tr><td colspan="7"><div class="error-state">Gagal menarik data dari Google Sheets: ${err.message}.<br>
+      Pastikan sheet di-share dengan akses "Anyone with the link can view", lalu muat ulang.</div></td></tr>`;
+  }
+}
+
+function renderKPIs(rows){
+  const total = rows.length;
+  const fast = rows.filter(r => r.statusCat === 'FAST').length;
+  const nonfast = rows.filter(r => r.statusCat === 'NONFAST').length;
+  const supersede = rows.filter(r => r.statusCat === 'SUPERSEDE').length;
+  const discontinue = rows.filter(r => r.statusCat === 'DISCONTINUE').length;
+  const incomplete = rows.filter(r => r.incomplete).length;
+  const pct = n => total ? ((n/total)*100).toFixed(0) + '% dari total' : '–';
+
+  document.getElementById('kTotal').textContent = total.toLocaleString('id-ID');
+  document.getElementById('kFast').textContent = fast.toLocaleString('id-ID');
+  document.getElementById('kFastPct').textContent = pct(fast);
+  document.getElementById('kNonFast').textContent = nonfast.toLocaleString('id-ID');
+  document.getElementById('kNonFastPct').textContent = pct(nonfast);
+  document.getElementById('kSupersede').textContent = supersede.toLocaleString('id-ID');
+  document.getElementById('kDiscontinue').textContent = discontinue.toLocaleString('id-ID');
+  document.getElementById('kIncomplete').textContent = incomplete.toLocaleString('id-ID');
+
+  document.getElementById('metaTotal').textContent = total.toLocaleString('id-ID');
+  document.getElementById('metaComplete').textContent = (total - incomplete).toLocaleString('id-ID') + ' / ' + total.toLocaleString('id-ID');
+}
+
+let statusChartRef = null, weightChartRef = null;
+function renderCharts(rows){
+  const counts = {FAST:0, NONFAST:0, SUPERSEDE:0, DISCONTINUE:0, OTHER:0};
+  rows.forEach(r => counts[r.statusCat]++);
+
+  const ctx1 = document.getElementById('statusChart');
+  if(statusChartRef) statusChartRef.destroy();
+  statusChartRef = new Chart(ctx1, {
+    type: 'doughnut',
+    data: {
+      labels: ['Fast Moving','Non Fast Moving','Supersede','Discontinue','Lainnya'],
+      datasets: [{
+        data: [counts.FAST, counts.NONFAST, counts.SUPERSEDE, counts.DISCONTINUE, counts.OTHER],
+        backgroundColor: ['#45d6bf','#8a97a3','#b393f5','#e2574c','#4c545b'],
+        borderColor: '#212528',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#8f9aa3', font: { family: "'IBM Plex Sans'", size: 11 }, boxWidth: 12 } }
+      },
+      cutout: '62%'
+    }
+  });
+
+  const top10 = [...rows].filter(r => r.berat > 0).sort((a,b) => b.berat - a.berat).slice(0,10);
+  const ctx2 = document.getElementById('weightChart');
+  if(weightChartRef) weightChartRef.destroy();
+  weightChartRef = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: top10.map(r => r.sku),
+      datasets: [{
+        label: 'Berat (g)',
+        data: top10.map(r => r.berat),
+        backgroundColor: '#45d6bf'
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8f9aa3', font:{family:"'IBM Plex Mono'", size:10} }, grid: { color: '#2c3237' } },
+        y: { ticks: { color: '#8f9aa3', font:{family:"'IBM Plex Mono'", size:10} }, grid: { display:false } }
+      }
+    }
+  });
+}
+
+function getFilteredRows(){
+  let rows = rawRows;
+  if(filterState.status !== 'ALL'){ rows = rows.filter(r => r.statusCat === filterState.status); }
+  if(filterState.incompleteOnly){ rows = rows.filter(r => r.incomplete); }
+  if(filterState.q){
+    const q = filterState.q.toLowerCase();
+    rows = rows.filter(r => r.sku.toLowerCase().includes(q) || r.nama.toLowerCase().includes(q));
+  }
+  if(sortState.key){
+    rows = [...rows].sort((a,b) => {
+      let av = a[sortState.key], bv = b[sortState.key];
+      if(typeof av === 'string'){ av = av.toLowerCase(); bv = (bv||'').toLowerCase(); }
+      if(av < bv) return -1 * sortState.dir;
+      if(av > bv) return 1 * sortState.dir;
+      return 0;
+    });
+  }
+  return rows;
+}
+
+function renderTable(){
+  const rows = getFilteredRows();
+  const tbody = document.getElementById('tableBody');
+  if(rows.length === 0){
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">Tidak ada data yang cocok dengan filter/pencarian.</div></td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map(r => `
+      <tr class="${r.incomplete ? 'incomplete' : ''}">
+        <td class="sku">${r.sku}</td>
+        <td><span class="badge ${statusBadgeClass(r.statusCat)}">${statusLabel(r.statusCat, r.statusRaw) || '—'}</span></td>
+        <td class="prodname">${r.nama || '<span class="dim">—</span>'}${r.incomplete ? '<span class="flag">⚠ belum lengkap</span>' : ''}</td>
+        <td class="dim">${r.berat ? r.berat.toLocaleString('id-ID') : '—'}</td>
+        <td class="dim">${r.volume ? r.volume.toLocaleString('id-ID') : '—'}</td>
+        <td class="dim">${(r.p||r.l||r.t) ? `${r.p}×${r.l}×${r.t}` : '—'}</td>
+        <td class="dim">${r.update || '—'}</td>
+      </tr>
+    `).join('');
+  }
+  document.getElementById('rowCountNote').textContent = `Menampilkan ${rows.length.toLocaleString('id-ID')} dari ${rawRows.length.toLocaleString('id-ID')} baris`;
+}
+
+function renderAll(){
+  renderKPIs(rawRows);
+  renderCharts(rawRows);
+  renderTable();
+}
+
+document.getElementById('searchBox').addEventListener('input', (e) => {
+  filterState.q = e.target.value;
+  renderTable();
+});
+
+document.querySelectorAll('.chip[data-status]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip[data-status]').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    filterState.status = chip.dataset.status;
+    renderTable();
+  });
+});
+
+document.getElementById('incompleteToggle').addEventListener('click', (e) => {
+  filterState.incompleteOnly = !filterState.incompleteOnly;
+  e.target.classList.toggle('active', filterState.incompleteOnly);
+  renderTable();
+});
+
+document.querySelectorAll('th[data-key]').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.key;
+    const map = { sku:'sku', status:'statusCat', nama:'nama', berat:'berat', volume:'volume', dim:'p', update:'update' };
+    const realKey = map[key];
+    if(sortState.key === realKey){ sortState.dir *= -1; } else { sortState.key = realKey; sortState.dir = 1; }
+    renderTable();
+  });
+});
+
+loadData();
+</script>
+</body>
+</html>
